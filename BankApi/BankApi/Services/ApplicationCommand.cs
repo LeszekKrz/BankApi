@@ -27,7 +27,7 @@ public class ApplicationCommand
         var offer = await _offerQuery.GetByIdAsync(offerId);
         if (offer is null) return new NotFoundException("Offer", offerId);
 
-        var validationDetails = _documentService.ValidateDocument(offerId, document);
+        var validationDetails = await _documentService.ValidateDocumentAsync(offerId, document);
         if (validationDetails.Errors.Any())
             return new BadRequestException("File", "Provided document is invalid");
 
