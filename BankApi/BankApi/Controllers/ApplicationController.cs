@@ -1,7 +1,9 @@
-﻿using BankAPI.Models;
+﻿using System.Security.Claims;
+using BankAPI.Models;
 using BankAPI.Models.Applications;
 using BankAPI.Results;
 using BankAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BankAPI.Controllers;
@@ -9,13 +11,16 @@ namespace BankAPI.Controllers;
 [ApiController]
 public class ApplicationController : ControllerBase
 {
-    private readonly ApplicationCommand _command;
-    private readonly ApplicationQuery _query;
+    private readonly ApplicationCommand _applicationCommand;
+    private readonly ApplicationQuery _applicationQuery;
+    private readonly OfferQuery _offerQuery;
 
-    public ApplicationController(ApplicationCommand command, ApplicationQuery query)
+    public ApplicationController(ApplicationCommand applicationCommand, ApplicationQuery applicationQuery,
+        OfferQuery offerQuery)
     {
-        _command = command;
-        _query = query;
+        _applicationCommand = applicationCommand;
+        _applicationQuery = applicationQuery;
+        _offerQuery = offerQuery;
     }
 
     [HttpPost]
@@ -23,9 +28,20 @@ public class ApplicationController : ControllerBase
     [ProducesResponseType(typeof(ApplicationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(NotFoundResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(BadRequestResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApplicationResponse>> Post(Guid offerId, IFormFile file)
     {
-        var result = await _command.CreateApplicationAsync(offerId, Document.FromFormFile(file));
+        var ownershipResult = await _offerQuery.CheckOwnerAsync(offerId, GetUsername());
+        if (ownershipResult == OwnershipTestResult.ResourceDoesNotExist)
+            return NotFound(new NotFoundResponse
+            {
+                ResourceName = "Offer",
+                Id = offerId.ToString()
+            });
+        if (ownershipResult == OwnershipTestResult.Unauthorized)
+            return Unauthorized();
+
+        var result = await _applicationCommand.CreateApplicationAsync(offerId, Document.FromFormFile(file));
         if (result.Exception is not null)
             return result.Exception switch
             {
@@ -38,29 +54,43 @@ public class ApplicationController : ControllerBase
     }
 
     [HttpGet]
-    [Route("application/{id:guid}")]
+    [Route("applications/{id:guid}")]
     [ProducesResponseType(typeof(ApplicationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(NotFoundResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApplicationResponse>> Get(Guid id)
     {
-        var result = await _query.GetByOfferIdAsync(id);
+        var ownershipResult = await _offerQuery.CheckOwnerAsync(id, GetUsername());
+        if (ownershipResult == OwnershipTestResult.ResourceDoesNotExist)
+            return NotFound(new NotFoundResponse
+            {
+                ResourceName = "Offer",
+                Id = id.ToString()
+            });
+        if (ownershipResult == OwnershipTestResult.Unauthorized)
+            return Unauthorized();
+
+        var result = await _applicationQuery.GetByOfferIdAsync(id);
         return result is null
             ? NotFound(new NotFoundResponse
             {
-                Id = id.ToString(),
-                ResourceName = "Offer"
+                ResourceName = "Application",
+                Id = id.ToString()
             })
             : result.ToResponse();
     }
 
     [HttpPost]
-    [Route("application/{id:guid}/review")]
+    [Authorize(Roles = TokenService.AdminRoleName)]
+    [Route("applications/{id:guid}/review")]
     [ProducesResponseType(typeof(ApplicationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(NotFoundResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(BadRequestResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ApplicationResponse>> Post(Guid id, ReviewRequest request)
     {
-        var result = await _command.ReviewApplicationAsync(id, request.Accepted);
+        var result = await _applicationCommand.ReviewApplicationAsync(id, request.Accepted);
         if (result.Exception is not null)
             return result.Exception switch
             {
@@ -73,14 +103,23 @@ public class ApplicationController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = TokenService.AdminRoleName)]
     [Route("applications")]
     [ProducesResponseType(typeof(ApplicationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<ApplicationResponse>>> Get(
         [FromQuery] ApplicationCollectionRequest request)
     {
-        var applications = await _query.GetAllAsync(request.StartTime ?? DateTimeOffset.MinValue,
+        var applications = await _applicationQuery.GetAllAsync(request.StartTime ?? DateTimeOffset.MinValue,
             request.MaxResponseSize,
             request.PendingOnly);
         return applications.Select(a => a.ToResponse()).ToList();
+    }
+
+    private string GetUsername()
+    {
+        return User.FindFirstValue(ClaimTypes.Name)
+               ?? throw new InvalidStateException("JwtToken", "Token does not contain Name claim");
     }
 }

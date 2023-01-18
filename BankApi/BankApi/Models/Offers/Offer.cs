@@ -12,6 +12,7 @@ public sealed class Offer
     public int Installments { get; init; }
     public decimal Percentage { get; init; }
     public PersonalData Recipient { get; init; } = null!;
+    public string OwnerUsername { get; init; } = null!;
 
     public OfferResponse ToResponse()
     {
@@ -32,7 +33,7 @@ public sealed class Offer
 
     public OfferEntity ToEntity()
     {
-        return new OfferEntity
+        return new()
         {
             Id = Id,
             CreationTimestamp = new DateTimeOffset(CreationTime).ToUnixTimeMilliseconds(),
@@ -45,13 +46,14 @@ public sealed class Offer
             GovernmentIdName = Recipient.Id.Name,
             GovernmentIdValue = Recipient.Id.Value,
             JobTypeId = Recipient.JobType.Id,
-            Income = Recipient.Income
+            Income = Recipient.Income,
+            OwnerUsername = OwnerUsername
         };
     }
 
     public static Offer FromEntity(OfferEntity entity)
     {
-        return new Offer
+        return new()
         {
             Id = entity.Id,
             CreationTime = DateTimeOffset.FromUnixTimeMilliseconds(entity.CreationTimestamp).UtcDateTime,
@@ -65,11 +67,12 @@ public sealed class Offer
                     entity.GovernmentIdValue),
                 JobType.GetById(entity.JobTypeId),
                 entity.Income
-            )
+            ),
+            OwnerUsername = entity.OwnerUsername
         };
     }
 
-    public static Offer FromInquiryWithPercentage(Inquiry inquiry, decimal percentage)
+    public static Offer FromInquiryWithPercentage(Inquiry inquiry, decimal percentage, string ownerUsername)
     {
         return new()
         {
@@ -78,7 +81,8 @@ public sealed class Offer
             Amount = inquiry.NeededAmount,
             Installments = inquiry.NumberOfInstallments,
             Percentage = percentage,
-            Recipient = inquiry.PersonalDetails
+            Recipient = inquiry.PersonalDetails,
+            OwnerUsername = ownerUsername
         };
     }
 }

@@ -14,12 +14,12 @@ public sealed class OfferCommand
         _context = context;
     }
 
-    public async Task<Result<Offer>> CreateOfferAsync(Inquiry inquiry)
+    public async Task<Result<Offer>> CreateOfferAsync(Inquiry inquiry, string ownerUsername)
     {
         var percentage = DetermineOfferPercentageForInquiry(inquiry);
         if (percentage is null) return new RejectedException();
 
-        var offer = Offer.FromInquiryWithPercentage(inquiry, percentage.Value);
+        var offer = Offer.FromInquiryWithPercentage(inquiry, percentage.Value, ownerUsername);
         _context.Offers.Add(offer.ToEntity());
         await _context.SaveChangesAsync();
 
