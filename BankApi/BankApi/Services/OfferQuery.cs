@@ -18,4 +18,11 @@ public sealed class OfferQuery
         var entity = await _context.Offers.FirstOrDefaultAsync(e => e.Id == offerId);
         return entity is null ? null : Offer.FromEntity(entity);
     }
+
+    public async Task<OwnershipTestResult> CheckOwnerAsync(Guid offerId, string username)
+    {
+        var entity = await _context.Offers.FirstOrDefaultAsync(e => e.Id == offerId);
+        if (entity is null) return OwnershipTestResult.ResourceDoesNotExist;
+        return entity.OwnerUsername == username ? OwnershipTestResult.Authorized : OwnershipTestResult.Unauthorized;
+    }
 }

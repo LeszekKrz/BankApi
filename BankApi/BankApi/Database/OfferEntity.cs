@@ -40,6 +40,9 @@ public class OfferEntity
     [Required]
     public int Income { get; init; }
 
+    [Required]
+    public string OwnerUsername { get; init; } = null!;
+
     // This is needed so that EF Core understands that offers and applications have 1-to-1 relationship
     public ApplicationEntity? Application { get; set; }
 }

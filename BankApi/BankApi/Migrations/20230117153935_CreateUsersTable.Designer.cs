@@ -3,6 +3,7 @@ using System;
 using BankAPI.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BankApi.Migrations
 {
     [DbContext(typeof(OffersDbContext))]
-    partial class OffersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230117153935_CreateUsersTable")]
+    partial class CreateUsersTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.0");
@@ -76,10 +79,6 @@ namespace BankApi.Migrations
                     b.Property<int>("NumberOfInstallments")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("OwnerUsername")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("Percentage")
                         .HasColumnType("TEXT");
 
@@ -88,17 +87,17 @@ namespace BankApi.Migrations
                     b.ToTable("Offers");
                 });
 
-            modelBuilder.Entity("BankAPI.Database.UserEntity", b =>
+            modelBuilder.Entity("BankAPI.Models.UserEntity", b =>
                 {
                     b.Property<string>("Username")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("HashedPassword")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Username");
 

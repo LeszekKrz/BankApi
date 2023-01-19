@@ -1,5 +1,6 @@
 ﻿using BankAPI.Models.GovernmentId;
 using BankAPI.Models.JobTypes;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BankAPI.Controllers;
@@ -8,6 +9,7 @@ namespace BankAPI.Controllers;
 public sealed class DictionaryController : ControllerBase
 {
     [HttpGet]
+    [AllowAnonymous]
     [Route("job-types")]
     [ProducesResponseType(typeof(IReadOnlyList<JobTypeResponse>), StatusCodes.Status200OK)]
     public IReadOnlyList<JobTypeResponse> GetJobTypes()
@@ -16,6 +18,7 @@ public sealed class DictionaryController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     [Route("government-id-types")]
     [ProducesResponseType(typeof(IReadOnlyList<GovernmentIdTypeResponse>), StatusCodes.Status200OK)]
     public IReadOnlyList<GovernmentIdTypeResponse> GetGovernmentIdTypes()
